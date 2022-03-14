@@ -122,6 +122,54 @@ private:
   T dist;
 };
 
+template<typename T, typename DESCRIPTOR>
+class EnthalpyBouzidiLinearPostProcessor3D : public LocalPostProcessor3D<T,DESCRIPTOR> {
+public:
+  EnthalpyBouzidiLinearPostProcessor3D(int x_, int y_, int z_, int iPop_, T dist_);
+  int extent() const override
+  {
+    return 1;
+  }
+  int extent(int whichDirection) const override
+  {
+    return 1;
+  }
+  void process(BlockLattice3D<T,DESCRIPTOR>& blockLattice) override;
+  void processSubDomain(BlockLattice3D<T,DESCRIPTOR>& blockLattice,
+                        int x0_, int x1_, int y0_, int y1_, int z0_, int z1_ ) override;
+private:
+  int x, y, z;
+  int xN, yN, zN, xB, yB, zB;
+  int iPop, opp, iPop2;
+  T q, dist;
+  T ufrac;
+  T sign;
+};
+
+
+template<typename T, typename DESCRIPTOR>
+class EnthalpyBounceBackPostProcessor3D : public LocalPostProcessor3D<T,DESCRIPTOR> {
+public:
+  EnthalpyBounceBackPostProcessor3D(int x_, int y_, int z_, int iPop_, T dist_);
+  int extent() const override
+  {
+    return 1;
+  }
+  int extent(int whichDirection) const override
+  {
+    return 1;
+  }
+  void process(BlockLattice3D<T,DESCRIPTOR>& blockLattice) override;
+  void processSubDomain(BlockLattice3D<T,DESCRIPTOR>& blockLattice,
+                        int x0_, int x1_, int y0_, int y1_, int z0_, int z1_ ) override;
+private:
+  int x, y, z;
+  int xN, yN, zN;
+  int iPop, opp;
+  T dist;
+};
+
+
 /**
 * Linear Bouzidi BC Generator
 */
@@ -166,6 +214,30 @@ template<typename T, typename DESCRIPTOR>
 class VelocityBounceBackPostProcessorGenerator3D : public PostProcessorGenerator3D<T,DESCRIPTOR> {
 public:
   VelocityBounceBackPostProcessorGenerator3D(int x_, int y_, int z_, int iPop_, T dist_);
+  PostProcessor3D<T,DESCRIPTOR>* generate() const override;
+  PostProcessorGenerator3D<T,DESCRIPTOR>*  clone() const override;
+private:
+  int x, y, z;
+  int iPop;
+  T dist;
+};
+
+template<typename T, typename DESCRIPTOR>
+class EnthalpyBouzidiLinearPostProcessorGenerator3D : public PostProcessorGenerator3D<T,DESCRIPTOR> {
+public:
+  EnthalpyBouzidiLinearPostProcessorGenerator3D(int x_, int y_, int z_, int iPop_, T dist_);
+  PostProcessor3D<T,DESCRIPTOR>* generate() const override;
+  PostProcessorGenerator3D<T,DESCRIPTOR>*  clone() const override;
+private:
+  int x, y, z;
+  int iPop;
+  T dist;
+};
+
+template<typename T, typename DESCRIPTOR>
+class EnthalpyBounceBackPostProcessorGenerator3D : public PostProcessorGenerator3D<T,DESCRIPTOR> {
+public:
+  EnthalpyBounceBackPostProcessorGenerator3D(int x_, int y_, int z_, int iPop_, T dist_);
   PostProcessor3D<T,DESCRIPTOR>* generate() const override;
   PostProcessorGenerator3D<T,DESCRIPTOR>*  clone() const override;
 private:

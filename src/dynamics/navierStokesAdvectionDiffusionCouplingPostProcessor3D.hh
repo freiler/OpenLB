@@ -205,7 +205,129 @@ LatticeCouplingGenerator3D<T,DESCRIPTOR>* TotalEnthalpyPhaseChangeCouplingGenera
   return new TotalEnthalpyPhaseChangeCouplingGenerator3D<T,DESCRIPTOR>(*this);
 }
 
+//=====================================================================================
+//============  SmagorinskyTotalEnthalpyPhaseChangeCouplingPostProcessor3D ============
+//=====================================================================================
 
+template<typename T, typename DESCRIPTOR>
+SmagorinskyTotalEnthalpyPhaseChangeCouplingPostProcessor3D<T,DESCRIPTOR>::
+SmagorinskyTotalEnthalpyPhaseChangeCouplingPostProcessor3D(int x0_, int x1_, int y0_, int y1_, int z0_, int z1_,
+    T gravity_, T T0_, T deltaTemp_, std::vector<T> dir_, T PrTurb_, T smagoPrefactor_,
+    std::vector<SpatiallyExtendedObject3D* > partners_)
+  :  x0(x0_), x1(x1_), y0(y0_), y1(y1_), z0(z0_), z1(z1_),
+     gravity(gravity_), T0(T0_), deltaTemp(deltaTemp_),  //ADD PrTurb(PrTurb_), smagoPrefactor(smagoPrefactor_)
+     dir(dir_), PrTurb(PrTurb_),smagoPrefactor(smagoPrefactor_), partners(partners_)
+{
+  this->getName() = "SmagorinskyTotalEnthalpyPhaseChangeCouplingPostProcessor3D";
+  // we normalize the direction of force vector
+  T normDir = T();
+  for (unsigned iD = 0; iD < dir.size(); ++iD) {
+    normDir += dir[iD]*dir[iD];
+  }
+  normDir = sqrt(normDir);
+  for (unsigned iD = 0; iD < dir.size(); ++iD) {
+    dir[iD] /= normDir;
+  }
+
+  for (unsigned iD = 0; iD < dir.size(); ++iD) {
+    forcePrefactor[iD] = gravity * dir[iD];
+  }
+  tauTurbADPrefactor = descriptors::invCs2<T,descriptors::D3Q7<descriptors::VELOCITY,descriptors::TEMPERATURE,descriptors::TAU_EFF>>() / descriptors::invCs2<T,DESCRIPTOR>() / PrTurb;
+  tPartner = static_cast<BlockLattice3D<T,descriptors::D3Q7<descriptors::VELOCITY,descriptors::TEMPERATURE,descriptors::TAU_EFF>> *>(partners[0]);
+}
+
+template<typename T, typename DESCRIPTOR>
+void SmagorinskyTotalEnthalpyPhaseChangeCouplingPostProcessor3D<T,DESCRIPTOR>::
+processSubDomain(BlockLattice3D<T,DESCRIPTOR>& blockLattice,
+                 int x0_, int x1_, int y0_, int y1_, int z0_, int z1_)
+{
+
+  int newX0, newX1, newY0, newY1, newZ0, newZ1;
+  if ( util::intersect (
+         x0, x1, y0, y1, z0, z1,
+         x0_, x1_, y0_, y1_, z0_, z1_,
+         newX0, newX1, newY0, newY1, newZ0, newZ1 ) ) {
+
+    for (int iX=newX0; iX<=newX1; ++iX) {
+      for (int iY=newY0; iY<=newY1; ++iY) {
+        for (int iZ=newZ0; iZ<=newZ1; ++iZ) {
+          T enthalpy = tPartner->get(iX,iY,iZ).computeRho();
+          auto liquid_fraction = blockLattice.get(iX,iY,iZ).template getFieldPointer<descriptors::POROSITY>();
+          liquid_fraction[0] = dynamic_cast<TotalEnthalpyAdvectionDiffusionBGKdynamics<T,descriptors::D3Q7<descriptors::VELOCITY,descriptors::TEMPERATURE,descriptors::TAU_EFF>>*>(tPartner->get(iX,iY,iZ).getDynamics())->computeLiquidFraction( enthalpy );
+          auto temperature = tPartner->get(iX,iY,iZ).template getFieldPointer<descriptors::TEMPERATURE>();
+          temperature[0] = dynamic_cast<TotalEnthalpyAdvectionDiffusionBGKdynamics<T,descriptors::D3Q7<descriptors::VELOCITY,descriptors::TEMPERATURE,descriptors::TAU_EFF>>*>(tPartner->get(iX,iY,iZ).getDynamics())->computeTemperature( enthalpy );
+
+          // computation of the bousinessq force
+          auto force = blockLattice.get(iX,iY,iZ).template getFieldPointer<descriptors::FORCE>();
+          T temperatureDifference = temperature[0] - T0;
+          for (unsigned iD = 0; iD < L::d; ++iD) {
+            force[iD] = forcePrefactor[iD] * temperatureDifference;
+          }
+          // Velocity coupling
+          FieldD<T,DESCRIPTOR,descriptors::VELOCITY> u;
+          blockLattice.get(iX,iY,iZ).computeU(u.data());
+          tPartner->get(iX,iY,iZ).template setField<descriptors::VELOCITY>(u);
+
+          // tau coupling
+          auto tauNS = blockLattice.get(iX,iY,iZ).template getFieldPointer<descriptors::TAU_EFF>();
+          auto tauAD = tPartner->get(iX,iY,iZ).template getFieldPointer<descriptors::TAU_EFF>();
+          T rho, pi[util::TensorVal<DESCRIPTOR >::n];
+          blockLattice.get(iX,iY,iZ).computeAllMomenta(rho, u.data(), pi);
+          T PiNeqNormSqr = pi[0]*pi[0] + 2.0*pi[1]*pi[1] + pi[2]*pi[2];
+          if (util::TensorVal<DESCRIPTOR >::n == 6) {
+            PiNeqNormSqr += pi[2]*pi[2] + pi[3]*pi[3] + 2*pi[4]*pi[4] +pi[5]*pi[5];
+          }
+          T PiNeqNorm    = sqrt(PiNeqNormSqr);
+          /// Molecular realaxation time
+          T tau_mol_NS = 1. / blockLattice.get(iX,iY,iZ).getDynamics()->getOmega();
+          T tau_mol_AD = 1. / tPartner->get(iX,iY,iZ).getDynamics()->getOmega();
+
+          /// Turbulent realaxation time
+          T tau_turb_NS = 0.5*(sqrt(tau_mol_NS*tau_mol_NS + smagoPrefactor/rho*PiNeqNorm) - tau_mol_NS);
+          if (tau_turb_NS != tau_turb_NS) {
+            tau_turb_NS = 0.0;
+          }
+          /// Effective realaxation time
+          tauNS[0] = tau_mol_NS+tau_turb_NS;
+
+          T tau_turb_AD = tau_turb_NS * tauTurbADPrefactor;
+          tauAD[0] = tau_mol_AD+tau_turb_AD*0.0;
+        }
+      }
+    }
+  }
+}
+
+template<typename T, typename DESCRIPTOR>
+void SmagorinskyTotalEnthalpyPhaseChangeCouplingPostProcessor3D<T,DESCRIPTOR>::
+process(BlockLattice3D<T,DESCRIPTOR>& blockLattice)
+{
+  processSubDomain(blockLattice, x0, x1, y0, y1, z0, z1);
+}
+
+/// LatticeCouplingGenerator for advectionDiffusion coupling
+
+template<typename T, typename DESCRIPTOR>
+SmagorinskyTotalEnthalpyPhaseChangeCouplingGenerator3D<T,DESCRIPTOR>::
+SmagorinskyTotalEnthalpyPhaseChangeCouplingGenerator3D(int x0_, int x1_, int y0_, int y1_, int z0_, int z1_,
+    T gravity_, T T0_, T deltaTemp_, std::vector<T> dir_,T PrTurb_, T smagoPrefactor_)
+  : LatticeCouplingGenerator3D<T,DESCRIPTOR>(x0_, x1_, y0_, y1_, z0_, z1_),
+    gravity(gravity_), T0(T0_), deltaTemp(deltaTemp_), dir(dir_), PrTurb(PrTurb_),smagoPrefactor(smagoPrefactor_)
+{ }
+
+template<typename T, typename DESCRIPTOR>
+PostProcessor3D<T,DESCRIPTOR>* SmagorinskyTotalEnthalpyPhaseChangeCouplingGenerator3D<T,DESCRIPTOR>::generate (
+  std::vector<SpatiallyExtendedObject3D* > partners) const
+{
+  return new SmagorinskyTotalEnthalpyPhaseChangeCouplingPostProcessor3D<T,DESCRIPTOR>(
+           this->x0,this->x1,this->y0,this->y1,this->z0,this->z1, gravity, T0, deltaTemp, dir, PrTurb, smagoPrefactor, partners);
+}
+
+template<typename T, typename DESCRIPTOR>
+LatticeCouplingGenerator3D<T,DESCRIPTOR>* SmagorinskyTotalEnthalpyPhaseChangeCouplingGenerator3D<T,DESCRIPTOR>::clone() const
+{
+  return new SmagorinskyTotalEnthalpyPhaseChangeCouplingGenerator3D<T,DESCRIPTOR>(*this);
+}
 //=====================================================================================
 //==============  PhaseFieldCouplingPostProcessor3D ===============
 //=====================================================================================

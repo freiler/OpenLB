@@ -133,6 +133,54 @@ private:
   std::vector<T> dir;
 };
 
+//================================================================================================================//
+// ======== Total enthalpy coupling with Boussinesq, buoyancy 3D, phase change and Smagorinsky====================//
+//================================================================================================================//
+template<typename T, typename DESCRIPTOR>
+class SmagorinskyTotalEnthalpyPhaseChangeCouplingPostProcessor3D : public LocalPostProcessor3D<T,DESCRIPTOR> {
+public:
+  SmagorinskyTotalEnthalpyPhaseChangeCouplingPostProcessor3D(int x0_, int x1_, int y0_, int y1_, int z0_, int z1_,
+      T gravity_, T T0_, T deltaTemp_, std::vector<T> dir_, T PrTurb_, T smagoPrefactor_,
+      std::vector<SpatiallyExtendedObject3D* > partners_);
+  int extent() const override
+  {
+    return 1;
+  }
+  int extent(int whichDirection) const override
+  {
+    return 1;
+  }
+  void process(BlockLattice3D<T,DESCRIPTOR>& blockLattice) override;
+  void processSubDomain(BlockLattice3D<T,DESCRIPTOR>& blockLattice,
+                        int x0_, int x1_, int y0_, int y1_, int z0_, int z1_) override;
+private:
+  typedef DESCRIPTOR L;
+  int x0, x1, y0, y1, z0, z1;
+  T gravity, T0, deltaTemp;
+  std::vector<T> dir;
+  T PrTurb;
+  T smagoPrefactor;
+  BlockLattice3D<T,descriptors::D3Q7<descriptors::VELOCITY,descriptors::TEMPERATURE,descriptors::TAU_EFF>> *tPartner;
+  T forcePrefactor[L::d];
+  T tauTurbADPrefactor;
+  std::vector<SpatiallyExtendedObject3D*> partners;
+
+};
+
+template<typename T, typename DESCRIPTOR>
+class SmagorinskyTotalEnthalpyPhaseChangeCouplingGenerator3D : public LatticeCouplingGenerator3D<T,DESCRIPTOR> {
+public:
+  SmagorinskyTotalEnthalpyPhaseChangeCouplingGenerator3D(int x0_, int x1_, int y0_, int y1_, int z0_, int z1_,
+      T gravity_, T T0_, T deltaTemp_, std::vector<T> dir_,T PrTurb_, T smagoPrefactor_);
+  PostProcessor3D<T,DESCRIPTOR>* generate(std::vector<SpatiallyExtendedObject3D* > partners) const override;
+  LatticeCouplingGenerator3D<T,DESCRIPTOR>* clone() const override;
+
+private:
+  T gravity, T0, deltaTemp;
+  std::vector<T> dir;
+  T PrTurb;
+  T smagoPrefactor;
+};
 
 //======================================================================
 // ======== Phase field coupling without bouancy 3D ====================//
@@ -157,7 +205,7 @@ public:
 private:
   using L = DESCRIPTOR;
   using PHI_CACHE = descriptors::DESCRIPTOR_FIELD_BASE<1,0,0>;
-  
+
   int x0, x1, y0, y1, z0, z1;
 
   T _rho_L, _rho_H, _delta_rho;

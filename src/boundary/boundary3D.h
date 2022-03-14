@@ -62,3 +62,5 @@
 #include "setRtlbmDiffuseTemperatureBoundary3D.h"
 #include "setRtlbmDiffuseConstTemperatureBoundary3D.h"
 #include "setRtlbmDirectedTemperatureBoundary3D.h"
+
+#include "setBouzidiConcentrationBoundary3D.h"

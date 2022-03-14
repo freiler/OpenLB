@@ -243,7 +243,7 @@ void AdvectionDiffusionTRTdynamics<T, DESCRIPTOR>::collide( Cell<T,DESCRIPTOR>& 
     fEqMinus[iPop] = 0.5 * ( fEq[iPop] - fEq[descriptors::opposite<DESCRIPTOR>(iPop)] );
   }
   for (int iPop=0; iPop < DESCRIPTOR::q; ++iPop) {
-    cell[iPop] -= _omega2 * (fPlus[iPop] - fEqPlus[iPop]) + this->_omega * (fMinus[iPop] - fEqMinus[iPop]);
+    cell[iPop] -= _omega2 * (fPlus[iPop] - fEqPlus[iPop]) +  this->_omega * (fMinus[iPop] - fEqMinus[iPop]);
   }
 
   statistics.incrementStats( temperature, 0. );

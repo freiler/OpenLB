@@ -47,7 +47,7 @@ NavierStokesAdvectionDiffusionCouplingPostProcessor2D(int x0_, int x1_, int y0_,
      gravity(gravity_), T0(T0_), deltaTemp(deltaTemp_),
      dir(dir_), partners(partners_)
 {
-  this->getName() = "NavierStokesAdvectionDiffusionCouplingPostProcessor2D";  
+  this->getName() = "NavierStokesAdvectionDiffusionCouplingPostProcessor2D";
   // we normalize the direction of force vector
   T normDir = T();
   for (unsigned iD = 0; iD < dir.size(); ++iD) {
@@ -140,7 +140,7 @@ TotalEnthalpyPhaseChangeCouplingPostProcessor2D(int x0_, int x1_, int y0_, int y
      gravity(gravity_), T0(T0_), deltaTemp(deltaTemp_),
      dir(dir_), partners(partners_)
 {
-  this->getName() = "TotalEnthalpyPhaseChangeCouplingPostProcessor2D";  
+  this->getName() = "TotalEnthalpyPhaseChangeCouplingPostProcessor2D";
   // we normalize the direction of force vector
   T normDir = T();
   for (unsigned iD = 0; iD < dir.size(); ++iD) {
@@ -399,7 +399,7 @@ SmagorinskyBoussinesqCouplingPostProcessor2D(int x0_, int x1_, int y0_, int y1_,
      gravity(gravity_), T0(T0_), deltaTemp(deltaTemp_),
      dir(dir_), PrTurb(PrTurb_), smagoPrefactor(smagoPrefactor_), partners(partners_)
 {
-  this->getName() = "SmagorinskyBoussinesqCouplingPostProcessor2D";  
+  this->getName() = "SmagorinskyBoussinesqCouplingPostProcessor2D";
   // we normalize the direction of force vector
   T normDir = T();
   for (unsigned iD = 0; iD < dir.size(); ++iD) {

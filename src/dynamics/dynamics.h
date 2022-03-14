@@ -94,6 +94,7 @@ struct Dynamics {
    */
   virtual void defineRho(Cell<T,DESCRIPTOR>& cell, T rho) =0;
   virtual void defineRho(int iPop, T rho);
+  virtual void defineConcentration(int iPop, T rho);
   /// Set fluid velocity on the cell.
   /** \param u fluid velocity
    */
@@ -105,6 +106,7 @@ struct Dynamics {
   virtual void defineU(const T u[DESCRIPTOR::d]);
   virtual void defineU(int iPop, const T u[DESCRIPTOR::d]);
   virtual T    getVelocityCoefficient(int iPop);
+  virtual T    getConcentrationCoefficient();
 
   /// Define fluid velocity and particle density on the cell.
   /** \param rho particle density
@@ -1057,6 +1059,8 @@ public:
   /// Does nothing
   void defineRho(Cell<T,DESCRIPTOR>& cell, T rho) override;
   /// Does nothing
+  void defineConcentration(Cell<T,DESCRIPTOR>& cell, const T rho);
+  /// Does nothing
   void defineU(Cell<T,DESCRIPTOR>& cell,
                const T u[DESCRIPTOR::d]) override;
   /// Does nothing
@@ -1100,6 +1104,10 @@ public:
   void defineRho(Cell<T,DESCRIPTOR>& cell, T rho) override;
   /// Set single velocity
   void defineRho(int iPop, T rho) override;
+  /// Set particle concentration on the cell.
+  void defineConcentration(Cell<T,DESCRIPTOR>& cell, T rho); //No override because there is no virtual function called defineConcentration, only for this Bouzidi BC for ADE
+  /// Set single concentration
+  void defineConcentration(int iPop, T rho);
   /// Set fluid velocity on the cell.
   void defineU(Cell<T,DESCRIPTOR>& cell, const T u[DESCRIPTOR::d]) override;
   /// Set constant velocity
@@ -1108,7 +1116,8 @@ public:
   void defineU(int iPop, const T u[DESCRIPTOR::d]) override;
   /// Get VelocitySummand for Bouzidi-Boundary Condition
   T getVelocityCoefficient(int iPop) override;
-
+  /// Get VelocitySummand for Bouzidi-Boundary Condition
+  T getConcentrationCoefficient() override;
 private:
   T _rho;
   T _u[DESCRIPTOR::q][DESCRIPTOR::d];
@@ -1116,6 +1125,7 @@ private:
   T distances[DESCRIPTOR::q];
   T boundaryIntersection[DESCRIPTOR::q][DESCRIPTOR::d];
   T velocityCoefficient[DESCRIPTOR::q];
+  T concentrationCoefficient;
 };
 
 /// Implementation of density sink by setting a zero distribution on the cell

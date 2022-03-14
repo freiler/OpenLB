@@ -60,6 +60,29 @@ void defineUBouzidi(BlockLatticeStructure3D<T,DESCRIPTOR>& _block, int iX, int i
 
 
 template<typename T, typename DESCRIPTOR>
+void defineConcentrationBouzidi(SuperLattice3D<T,DESCRIPTOR>& sLattice, SuperGeometry3D<T>& superGeometry, int material,
+                    AnalyticalF3D<T,T>& rho, std::vector<int> bulkMaterials = std::vector<int>(1,1) );
+
+////////////////////////////////////////////
+template<typename T, typename DESCRIPTOR>
+void defineConcentrationBouzidi(SuperLattice3D<T,DESCRIPTOR>& sLattice, FunctorPtr<SuperIndicatorF3D<T>>&& boundaryIndicator,
+                    AnalyticalF3D<T,T>& rho, std::vector<int> bulkMaterials = std::vector<int>(1,1) );
+
+template<typename T, typename DESCRIPTOR>
+void defineConcentrationBouzidi(SuperLattice3D<T,DESCRIPTOR>& sLattice, FunctorPtr<SuperIndicatorF3D<T>>&& boundaryIndicator,
+                    FunctorPtr<SuperIndicatorF3D<T>>&& bulkIndicator, AnalyticalF3D<T,T>& rho);
+
+////////// BlockLattice Domain  /////////////////////////////////////////
+template<typename T, typename DESCRIPTOR>
+void defineConcentrationBouzidi(BlockLatticeStructure3D<T,DESCRIPTOR>& _block, BlockIndicatorF3D<T>& indicator, BlockIndicatorF3D<T>& bulkIndicator, AnalyticalF3D<T,T>& rho);
+
+
+template<typename T, typename DESCRIPTOR>
+void defineConcentrationBouzidi(BlockLatticeStructure3D<T,DESCRIPTOR>& _block, int iX, int iY, int iZ, int iPop, const T rho);
+////////////////////////////////////////////
+
+
+template<typename T, typename DESCRIPTOR>
 bool getBoundaryIntersection(BlockLatticeStructure3D<T,DESCRIPTOR>& _block, int iX, int iY, int iZ, int iPop, T point[DESCRIPTOR::d]);
 
 

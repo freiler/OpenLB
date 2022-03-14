@@ -94,7 +94,7 @@ private:
 };
 
 /* Generic implementation for moving porous media (HLBM approach).
- * As this scheme requires additionla data stored in an external field, 
+ * As this scheme requires additionla data stored in an external field,
  * it is meant to be used along with a PorousParticle descriptor.
  * \param omega Lattice relaxation frequency
  * \param momenta A standard object for the momenta computation
@@ -109,7 +109,7 @@ protected:
 };
 
 /* Implementation of the BGK collision for moving porous media (HLBM approach).
- * As this scheme requires additionla data stored in an external field, 
+ * As this scheme requires additionla data stored in an external field,
  * it is meant to be used along with a PorousParticle descriptor.
  * \param omega Lattice relaxation frequency
  * \param momenta A standard object for the momenta computation
@@ -262,6 +262,7 @@ private:
   Mode mode;
 };
 
+
 /// Implementation of the Partially Saturated Method (PSM),
 /// see Krüger, Timm, et al. The Lattice Boltzmann Method. Springer, 2017. (p.447-451)
 template<typename T, typename DESCRIPTOR>
@@ -289,6 +290,63 @@ public:
 private:
   T omega;      ///< relaxation parameter
   T paramA;      /// speed up parameter
+  Mode mode;
+};
+
+/// Implementation of the Partially Saturated Method (PSM),
+/// see Krüger, Timm, et al. The Lattice Boltzmann Method. Springer, 2017. (p.447-451)
+template<typename T, typename DESCRIPTOR>
+class ForcedPSMTRTdynamics : public ForcedBGKdynamics<T,DESCRIPTOR> {
+public:
+  /// Constructor
+  ForcedPSMTRTdynamics(T omega_, Momenta<T,DESCRIPTOR>& momenta_, int mode_=0);
+  ///  Compute fluid velocity on the cell.
+  void computeU (
+    ConstCell<T,DESCRIPTOR>& cell,
+    T u[DESCRIPTOR::d] ) const override;
+  /// Compute fluid velocity and particle density on the cell.
+  void computeRhoU (
+    ConstCell<T,DESCRIPTOR>& cell,
+    T& rho, T u[DESCRIPTOR::d]) const override;
+  /// Collision step
+  void collide(Cell<T,DESCRIPTOR>& cell,
+                       LatticeStatistics<T>& statistics_) override;
+  /// get relaxation parameter
+  T    getOmega() const;
+  /// set relaxation parameter
+  void setOmega(T omega_);
+
+
+private:
+  T omega;      ///< relaxation parameter
+  T paramA;      /// speed up parameter
+  Mode mode;
+};
+
+/// Implementation of the Partially Saturated Method (PSM) with Smagorinsky,
+/// see Krüger, Timm, et al. The Lattice Boltzmann Method. Springer, 2017. (p.447-451)
+template<typename T, typename DESCRIPTOR>
+class SmagorinskyForcedPSMBGKdynamics : public ForcedBGKdynamics<T,DESCRIPTOR> {
+public:
+  /// Constructor
+  SmagorinskyForcedPSMBGKdynamics(T omega_, Momenta<T,DESCRIPTOR>& momenta_, int mode_=0);
+  ///  Compute fluid velocity on the cell.
+  void computeU (
+    ConstCell<T,DESCRIPTOR>& cell,
+    T u[DESCRIPTOR::d] ) const override;
+  /// Compute fluid velocity and particle density on the cell.
+  void computeRhoU (
+    ConstCell<T,DESCRIPTOR>& cell,
+    T& rho, T u[DESCRIPTOR::d]) const override;
+  /// Collision step
+  void collide(Cell<T,DESCRIPTOR>& cell,
+                       LatticeStatistics<T>& statistics_) override;
+  /// get relaxation parameter
+  T    getOmega() const;
+  /// set relaxation parameter
+  void setOmega(T omega_);
+private:
+  T omega;
   Mode mode;
 };
 

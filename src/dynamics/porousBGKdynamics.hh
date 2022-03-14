@@ -825,6 +825,278 @@ void ForcedPSMBGKdynamics<T,DESCRIPTOR>::setOmega(T omega_)
 }
 
 
+
+////////////////////// Class ForcedPSMTRTdynamics //////////////////////////
+
+/** \param omega relaxation parameter, related to the dynamic viscosity
+ *  \param momenta a Momenta object to know how to compute velocity momenta
+ */
+template<typename T, typename DESCRIPTOR>
+ForcedPSMTRTdynamics<T,DESCRIPTOR>::ForcedPSMTRTdynamics (
+  T omega_, Momenta<T,DESCRIPTOR>& momenta_, int mode_ )
+  : ForcedBGKdynamics<T,DESCRIPTOR>(omega_, momenta_),
+    omega(omega_), paramA(1. / omega_ - 0.5)
+{
+  mode = (Mode) mode_;
+}
+
+
+template<typename T, typename DESCRIPTOR>
+void ForcedPSMTRTdynamics<T,DESCRIPTOR>::computeU (ConstCell<T,DESCRIPTOR>& cell, T u[DESCRIPTOR::d] ) const
+{
+  T rho;
+  this->_momenta.computeRhoU(cell, rho, u);
+  T epsilon = 1. - cell.template getField<descriptors::POROSITY>();
+  // speed up paramB
+  T paramB = (epsilon * paramA) / ((1. - epsilon) + paramA);
+  // speed up paramC
+  T paramC = (1. - paramB);
+  for (int iVel=0; iVel<DESCRIPTOR::d; ++iVel) {
+    u[iVel] = paramC * (u[iVel] + cell.template getFieldPointer<descriptors::FORCE>()[iVel] / (T)2.) +
+              paramB * cell.template getFieldPointer<descriptors::VELOCITY_SOLID>()[iVel];
+  }
+}
+
+template<typename T, typename DESCRIPTOR>
+void ForcedPSMTRTdynamics<T,DESCRIPTOR>::computeRhoU (ConstCell<T,DESCRIPTOR>& cell, T& rho, T u[DESCRIPTOR::d] ) const
+{
+  this->_momenta.computeRhoU(cell, rho, u);
+  T epsilon = 1. - cell.template getField<descriptors::POROSITY>();
+  // speed up paramB
+  T paramB = (epsilon * paramA) / ((1. - epsilon) + paramA);
+  // speed up paramC
+  T paramC = (1. - paramB);
+  for (int iVel=0; iVel<DESCRIPTOR::d; ++iVel) {
+    u[iVel] = paramC * (u[iVel] + cell.template getFieldPointer<descriptors::FORCE>()[iVel] / (T)2.) +
+              paramB * cell.template getFieldPointer<descriptors::VELOCITY_SOLID>()[iVel];
+  }
+}
+
+template<typename T, typename DESCRIPTOR>
+void ForcedPSMTRTdynamics<T,DESCRIPTOR>::collide (
+  Cell<T,DESCRIPTOR>& cell,
+  LatticeStatistics<T>& statistics )
+{
+  T rho, u[DESCRIPTOR::d], uSqr=0;
+  T epsilon = 1. - cell.template getField<descriptors::POROSITY>();
+
+  this->_momenta.computeRhoU(cell, rho, u);
+
+  auto force = cell.template getFieldPointer<descriptors::FORCE>();
+  for (int iVel=0; iVel<DESCRIPTOR::d; ++iVel) {
+    u[iVel] += force[iVel] / (T)2.;
+  }
+  // velocity at the boundary
+  auto u_s = cell.template getField<descriptors::VELOCITY_SOLID>();
+  uSqr = util::normSqr<T,DESCRIPTOR::d>(u); //NEW
+  T fPlus[DESCRIPTOR::q], fMinus[DESCRIPTOR::q]; //NEW
+  T fEq[DESCRIPTOR::q], fEqPlus[DESCRIPTOR::q], fEqMinus[DESCRIPTOR::q]; //NEW
+  const T _magicParameter = 1./4.; //NEW
+  const T omega2 = 1./(_magicParameter/(1./omega-0.5)+0.5); //NEW
+
+  if (epsilon < 1e-5) {
+    //TRT collision begins here
+    for (int iPop=0; iPop < DESCRIPTOR::q; ++iPop) {
+      fPlus[iPop] = 0.5 * ( cell[iPop] + cell[descriptors::opposite<DESCRIPTOR>(iPop)] );
+      fMinus[iPop] = 0.5 * ( cell[iPop] - cell[descriptors::opposite<DESCRIPTOR>(iPop)] );
+      fEq[iPop] = lbHelpers<T, DESCRIPTOR>::equilibrium(iPop, rho, u, uSqr);
+    }
+    for (int iPop=0; iPop < DESCRIPTOR::q; ++iPop) {
+      fEqPlus[iPop] = 0.5 * ( fEq[iPop] + fEq[descriptors::opposite<DESCRIPTOR>(iPop)] );
+      fEqMinus[iPop] = 0.5 * ( fEq[iPop] - fEq[descriptors::opposite<DESCRIPTOR>(iPop)] );
+    }
+    for (int iPop=0; iPop < DESCRIPTOR::q; ++iPop) {
+      cell[iPop] -= omega * (fPlus[iPop] - fEqPlus[iPop]) + omega2 * (fMinus[iPop] - fEqMinus[iPop]);
+    }
+
+    lbHelpers<T,DESCRIPTOR>::addExternalForce(cell, u, omega, rho);
+  } else {
+    // speed up paramB
+    T paramB = (epsilon * paramA) / ((1. - epsilon) + paramA);
+    // speed up paramC
+    T paramC = (1. - paramB);
+
+    T omega_s[DESCRIPTOR::q];
+    T cell_tmp[DESCRIPTOR::q];
+
+    const T uSqr_s = util::normSqr<T,DESCRIPTOR::d>(u_s.data());
+
+    for (int iPop=0; iPop < DESCRIPTOR::q; ++iPop) {
+      cell_tmp[iPop] = cell[iPop];
+      switch(mode){
+        case M2: omega_s[iPop] = (lbDynamicsHelpers<T,DESCRIPTOR>::equilibrium(iPop, rho, u_s.data(), uSqr_s ) - cell[iPop])
+                         + (1 - omega) * (cell[iPop] - lbDynamicsHelpers<T,DESCRIPTOR>::equilibrium(iPop, rho, u, uSqr )); break;
+        case M3: omega_s[iPop] = (cell[descriptors::opposite<DESCRIPTOR>(iPop)] - lbDynamicsHelpers<T,DESCRIPTOR>::equilibrium(descriptors::opposite<DESCRIPTOR>(iPop), rho, u_s.data(), uSqr_s ))
+               - (cell[iPop] - lbDynamicsHelpers<T,DESCRIPTOR>::equilibrium(iPop, rho, u_s.data(), uSqr_s ));
+      }
+    }
+
+    //TRT collision begins here
+    for (int iPop=0; iPop < DESCRIPTOR::q; ++iPop) {
+      fPlus[iPop] = 0.5 * ( cell[iPop] + cell[descriptors::opposite<DESCRIPTOR>(iPop)] );
+      fMinus[iPop] = 0.5 * ( cell[iPop] - cell[descriptors::opposite<DESCRIPTOR>(iPop)] );
+      fEq[iPop] = lbHelpers<T, DESCRIPTOR>::equilibrium(iPop, rho, u, uSqr);
+    }
+    for (int iPop=0; iPop < DESCRIPTOR::q; ++iPop) {
+      fEqPlus[iPop] = 0.5 * ( fEq[iPop] + fEq[descriptors::opposite<DESCRIPTOR>(iPop)] );
+      fEqMinus[iPop] = 0.5 * ( fEq[iPop] - fEq[descriptors::opposite<DESCRIPTOR>(iPop)] );
+    }
+    for (int iPop=0; iPop < DESCRIPTOR::q; ++iPop) {
+      cell[iPop] += paramC*(-omega * (fPlus[iPop] - fEqPlus[iPop]) - omega2 * (fMinus[iPop] - fEqMinus[iPop]));
+      cell[iPop] += paramB * omega_s[iPop];
+    }
+    lbHelpers<T,DESCRIPTOR>::addExternalForce(cell, u, omega, rho);
+
+    for (int iVel=0; iVel<DESCRIPTOR::d; ++iVel) {
+      u[iVel] = paramC * u[iVel] + paramB * u_s[iVel];
+    }
+
+    uSqr = util::normSqr<T,DESCRIPTOR::d>(u);
+  }
+
+  statistics.incrementStats(rho, uSqr);
+}
+
+template<typename T, typename DESCRIPTOR>
+T ForcedPSMTRTdynamics<T,DESCRIPTOR>::getOmega() const
+{
+  return omega;
+}
+
+template<typename T, typename DESCRIPTOR>
+void ForcedPSMTRTdynamics<T,DESCRIPTOR>::setOmega(T omega_)
+{
+  paramA = (1. / omega_ - 0.5);
+  omega = omega_;
+
+}
+
+
+////////////////////// Class SmagorinskyForcedPSMBGKdynamics //////////////////////////
+
+/** \param omega relaxation parameter, related to the dynamic viscosity
+ *  \param momenta a Momenta object to know how to compute velocity momenta
+ */
+
+ template<typename T, typename DESCRIPTOR>
+ SmagorinskyForcedPSMBGKdynamics<T,DESCRIPTOR>::SmagorinskyForcedPSMBGKdynamics (
+   T omega_, Momenta<T,DESCRIPTOR>& momenta_, int mode_ )
+   : ForcedBGKdynamics<T,DESCRIPTOR>(omega_, momenta_),
+   omega(omega_)
+ {
+   mode = (Mode) mode_;
+ }
+
+
+ template<typename T, typename DESCRIPTOR>
+ void SmagorinskyForcedPSMBGKdynamics<T,DESCRIPTOR>::computeU (ConstCell<T,DESCRIPTOR>& cell, T u[DESCRIPTOR::d] ) const
+ {
+   T rho;
+   this->_momenta.computeRhoU(cell, rho, u);
+   T epsilon = 1. - cell.template getField<descriptors::POROSITY>();
+   T tau_eff = cell.template getField<descriptors::TAU_EFF>();
+   // speed up paramA
+   T paramA = tau_eff - 0.5;
+   // speed up paramB
+   T paramB = (epsilon * paramA) / ((1. - epsilon) + paramA);
+   // speed up paramC
+   T paramC = (1. - paramB);
+   for (int iVel=0; iVel<DESCRIPTOR::d; ++iVel) {
+     u[iVel] = paramC * (u[iVel] + cell.template getFieldPointer<descriptors::FORCE>()[iVel] / (T)2.) +
+               paramB * cell.template getFieldPointer<descriptors::VELOCITY_SOLID>()[iVel];
+   }
+ }
+
+ template<typename T, typename DESCRIPTOR>
+ void SmagorinskyForcedPSMBGKdynamics<T,DESCRIPTOR>::computeRhoU (ConstCell<T,DESCRIPTOR>& cell, T& rho, T u[DESCRIPTOR::d] ) const
+ {
+   this->_momenta.computeRhoU(cell, rho, u);
+   T epsilon = 1. - cell.template getField<descriptors::POROSITY>();
+   T tau_eff = cell.template getField<descriptors::TAU_EFF>();
+   // speed up paramA
+   T paramA = tau_eff - 0.5;
+   // speed up paramB
+   T paramB = (epsilon * paramA) / ((1. - epsilon) + paramA);
+   // speed up paramC
+   T paramC = (1. - paramB);
+   for (int iVel=0; iVel<DESCRIPTOR::d; ++iVel) {
+     u[iVel] = paramC * (u[iVel] + cell.template getFieldPointer<descriptors::FORCE>()[iVel] / (T)2.) +
+               paramB * cell.template getFieldPointer<descriptors::VELOCITY_SOLID>()[iVel];
+   }
+ }
+
+ template<typename T, typename DESCRIPTOR>
+ void SmagorinskyForcedPSMBGKdynamics<T,DESCRIPTOR>::collide (
+   Cell<T,DESCRIPTOR>& cell,
+   LatticeStatistics<T>& statistics )
+ {
+   T rho, u[DESCRIPTOR::d], uSqr=0;
+   T epsilon = 1. - cell.template getField<descriptors::POROSITY>();   //ADD A getField FUNCTION FOR TAU_EFF AND THEN MODIFY LINES 60,61,77?, 83,84,
+   T tau_eff = cell.template getField<descriptors::TAU_EFF>();
+   T newOmega = 1./tau_eff;
+   // paramA
+   T paramA = tau_eff - 0.5;
+   this->_momenta.computeRhoU(cell, rho, u);
+
+   auto force = cell.template getFieldPointer<descriptors::FORCE>();
+   for (int iVel=0; iVel<DESCRIPTOR::d; ++iVel) {
+     u[iVel] += force[iVel] / (T)2.;
+   }
+   // velocity at the boundary
+   auto u_s = cell.template getField<descriptors::VELOCITY_SOLID>();
+
+   if (epsilon < 1e-5) {
+     uSqr = lbHelpers<T,DESCRIPTOR>::bgkCollision(cell, rho, u, newOmega);
+     lbHelpers<T,DESCRIPTOR>::addExternalForce(cell, u, newOmega, rho);
+   } else {
+     // speed up paramB
+     T paramB = (epsilon * paramA) / ((1. - epsilon) + paramA);
+     // speed up paramC
+     T paramC = (1. - paramB);
+
+     T omega_s[DESCRIPTOR::q];
+     T cell_tmp[DESCRIPTOR::q];
+
+     const T uSqr_s = util::normSqr<T,DESCRIPTOR::d>(u_s.data());
+
+     for (int iPop=0; iPop < DESCRIPTOR::q; ++iPop) {
+       cell_tmp[iPop] = cell[iPop];
+       switch(mode){
+         case M2: omega_s[iPop] = (lbDynamicsHelpers<T,DESCRIPTOR>::equilibrium(iPop, rho, u_s.data(), uSqr_s ) - cell[iPop])
+                          + (1 - newOmega) * (cell[iPop] - lbDynamicsHelpers<T,DESCRIPTOR>::equilibrium(iPop, rho, u, uSqr )); break;
+         case M3: omega_s[iPop] = (cell[descriptors::opposite<DESCRIPTOR>(iPop)] - lbDynamicsHelpers<T,DESCRIPTOR>::equilibrium(descriptors::opposite<DESCRIPTOR>(iPop), rho, u_s.data(), uSqr_s ))
+                - (cell[iPop] - lbDynamicsHelpers<T,DESCRIPTOR>::equilibrium(iPop, rho, u_s.data(), uSqr_s ));
+       }
+     }
+
+     uSqr = lbHelpers<T,DESCRIPTOR>::bgkCollision(cell, rho, u, newOmega);
+     lbHelpers<T,DESCRIPTOR>::addExternalForce(cell, u, newOmega, rho);
+
+     for (int iPop=0; iPop < DESCRIPTOR::q; ++iPop) {
+       cell[iPop] = cell_tmp[iPop] + paramC * (cell[iPop] - cell_tmp[iPop]);
+       cell[iPop] += paramB * omega_s[iPop];
+     }
+     for (int iVel=0; iVel<DESCRIPTOR::d; ++iVel) {
+       u[iVel] = paramC * u[iVel] + paramB * u_s[iVel];
+     }
+     uSqr = util::normSqr<T,DESCRIPTOR::d>(u);
+   }
+   statistics.incrementStats(rho, uSqr);
+ }
+
+ template<typename T, typename DESCRIPTOR>
+ T SmagorinskyForcedPSMBGKdynamics<T,DESCRIPTOR>::getOmega() const
+ {
+   return omega;
+ }
+
+ template<typename T, typename DESCRIPTOR>
+ void SmagorinskyForcedPSMBGKdynamics<T,DESCRIPTOR>::setOmega(T omega_)
+ {
+   omega = omega_;
+ }
+
+
 } // olb
 
 #endif

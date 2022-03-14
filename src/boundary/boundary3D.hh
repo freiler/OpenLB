@@ -62,3 +62,5 @@
 #include "setRtlbmDiffuseTemperatureBoundary3D.hh"
 #include "setRtlbmDiffuseConstTemperatureBoundary3D.hh"
 #include "setRtlbmDirectedTemperatureBoundary3D.hh"
+
+#include "setBouzidiConcentrationBoundary3D.hh"

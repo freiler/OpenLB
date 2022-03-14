@@ -67,6 +67,37 @@ struct lbDynamicsHelpers<T, descriptors::D2Q9<FIELDS...> > {
     }
   }
 
+  /// RLB advection diffusion collision step
+   //static T rlbCollision(Cell<T, descriptors::D3Q19<> >& cell, T rho, const T u[3], T omega )
+   static T rlbCollision(Cell<T,DESCRIPTOR>& cell, T rho, const T u[2], T omega )
+   {
+     const T uSqr = util::normSqr<T, DESCRIPTOR::d>( u );
+     // First-order moment for the regularization
+     T j1[DESCRIPTOR::d];
+     for ( int iD = 0; iD < 2; ++iD ) {
+       j1[iD] = T();
+     }
+
+     T fEq[DESCRIPTOR::q];
+     for ( int iPop = 0; iPop < 9; ++iPop ) {
+       fEq[iPop] = lbDynamicsHelpers<T, DESCRIPTOR>::equilibriumFirstOrder( iPop, rho, u );
+       for ( int iD = 0; iD < DESCRIPTOR::d; ++iD ) {
+         j1[iD] += descriptors::c<DESCRIPTOR>(iPop,iD) * ( cell[iPop] - fEq[iPop] );
+       }
+     }
+
+     // Collision step
+     for ( int iPop = 0; iPop < DESCRIPTOR::q; ++iPop ) {
+       T fNeq = T();
+       for ( int iD = 0; iD < DESCRIPTOR::d; ++iD ) {
+         fNeq += descriptors::c<DESCRIPTOR>(iPop,iD) * j1[iD];
+       }
+       fNeq *= descriptors::t<T,DESCRIPTOR>(iPop) * descriptors::invCs2<T,DESCRIPTOR>();
+       cell[iPop] = fEq[iPop] + ( (T)1 - omega ) * fNeq;
+     }
+     return uSqr;
+   }
+
   static T bgkCollision(Cell<T,DESCRIPTOR>& cell, T const& rho, const T u[2], T const& omega)
   {
     T uxSqr = u[0]*u[0];

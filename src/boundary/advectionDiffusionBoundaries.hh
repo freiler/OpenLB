@@ -107,7 +107,7 @@ collide(Cell<T,DESCRIPTOR>& cell,LatticeStatistics<T>& statistics)
          ++iteratePop) {
       cell[unknownIndexes[iteratePop]] =
         lbH::equilibriumFirstOrder(unknownIndexes[iteratePop], dirichletTemperature, u.data())
-        - (cell[util::opposite<L>(unknownIndexes[iteratePop])]
+        + (cell[util::opposite<L>(unknownIndexes[iteratePop])]
            - lbH::equilibriumFirstOrder(
              util::opposite<L>(unknownIndexes[iteratePop]),
              dirichletTemperature, u.data()));
@@ -144,7 +144,8 @@ AdvectionDiffusionCornerDynamics2D<T,DESCRIPTOR,Dynamics,xNormal,yNormal>::Advec
 template<typename T, typename DESCRIPTOR, typename Dynamics,  int xNormal, int yNormal>
 T AdvectionDiffusionCornerDynamics2D<T,DESCRIPTOR,Dynamics,xNormal,yNormal>::computeEquilibrium(int iPop, T rho, const T u[DESCRIPTOR::d], T uSqr) const
 {
-  return lbHelpers<T,DESCRIPTOR>::equilibriumFirstOrder( iPop, rho, u );
+  //return lbHelpers<T,DESCRIPTOR>::equilibriumFirstOrder( iPop, rho, u );
+  return lbHelpers<T,DESCRIPTOR>::equilibrium( iPop, rho, u, uSqr );
 }
 
 
@@ -156,23 +157,20 @@ void AdvectionDiffusionCornerDynamics2D<T,DESCRIPTOR,Dynamics,xNormal,yNormal>::
 
   T temperature = this->_momenta.computeRho(cell);
   auto u = cell.template getField<descriptors::VELOCITY>();
+
   // I need to get Missing information on the corners !!!!
   std::vector<int> unknownIndexes = util::subIndexOutgoing2DonCorners<L,xNormal,yNormal>();
   // here I know all missing and non missing f_i
-
+   T uSqr = util::normSqr<T,L::d>(u.data());
 
   // The collision procedure for D2Q5 and D3Q7 lattice is the same ...
   // Given the rule f_i_neq = -f_opposite(i)_neq
   // I have the right number of equations for the number of unknowns using these lattices
-
   for (unsigned iPop = 0; iPop < unknownIndexes.size(); ++iPop) {
     cell[unknownIndexes[iPop]] = lbH::equilibriumFirstOrder(unknownIndexes[iPop], temperature, u.data())
-                                 -(cell[util::opposite<L>(unknownIndexes[iPop])]
-                                   - lbH::equilibriumFirstOrder(util::opposite<L>(unknownIndexes[iPop]), temperature, u.data()) ) ;
+                                +(cell[util::opposite<L>(unknownIndexes[iPop])]
+                                - lbH::equilibriumFirstOrder(util::opposite<L>(unknownIndexes[iPop]), temperature, u.data()) ) ;
   }
-
-  // Once all the f_i are known, I can call the collision for the Regularized Model.
-  boundaryDynamics.collide(cell, statistics);
 
 }
 
@@ -233,7 +231,7 @@ void AdvectionDiffusionCornerDynamics3D<T,DESCRIPTOR,Dynamics,xNormal,yNormal,zN
     //                             -(cell[util::opposite<L>(unknownIndexes[iPop])]
     //                               - lbH::equilibriumFirstOrder(util::opposite<L>(unknownIndexes[iPop]), temperature, u.data()) ) ;
     cell[unknownIndexes[iPop]] = lbH::equilibrium(unknownIndexes[iPop], temperature, u.data(),uSqr)
-                                 -(cell[util::opposite<L>(unknownIndexes[iPop])]
+                                 +(cell[util::opposite<L>(unknownIndexes[iPop])]
                                    - lbH::equilibrium(util::opposite<L>(unknownIndexes[iPop]), temperature, u.data(),uSqr) ) ;
 
   }
@@ -299,7 +297,7 @@ void AdvectionDiffusionEdgesDynamics<T,DESCRIPTOR,Dynamics,plane,normal1, normal
     //                             -(cell[util::opposite<L>(unknownIndexes[iPop])]
     //                               - lbH::equilibriumFirstOrder(util::opposite<L>(unknownIndexes[iPop]), temperature, u.data()) ) ;
     cell[unknownIndexes[iPop]] = lbH::equilibrium(unknownIndexes[iPop], temperature, u.data(),uSqr)
-                                 -(cell[util::opposite<L>(unknownIndexes[iPop])]
+                                 +(cell[util::opposite<L>(unknownIndexes[iPop])]
                                    - lbH::equilibrium(util::opposite<L>(unknownIndexes[iPop]), temperature, u.data(),uSqr) ) ;
   }
 
@@ -404,7 +402,7 @@ collide(Cell<T,DESCRIPTOR>& cell,LatticeStatistics<T>& statistics)
          ++iteratePop) {
 
      cell[unknownIndexes[iteratePop]] = boundaryDynamics.computeEquilibrium(unknownIndexes[iteratePop], dirichletEnthalpy, u.data(),uSqr)
-                                  -(cell[util::opposite<L>(unknownIndexes[iteratePop])]
+                                  +(cell[util::opposite<L>(unknownIndexes[iteratePop])]
                                     - boundaryDynamics.computeEquilibrium(util::opposite<L>(unknownIndexes[iteratePop]), dirichletEnthalpy, u.data(),uSqr) ) ;
     }
   }
@@ -469,7 +467,7 @@ void AdvectionDiffusionEnthalpyCornerDynamics3D<T,DESCRIPTOR,Dynamics,xNormal,yN
     //                             -(cell[util::opposite<L>(unknownIndexes[iPop])]
     //                               - lbH::equilibriumFirstOrder(util::opposite<L>(unknownIndexes[iPop]), temperature, u.data()) ) ;
     cell[unknownIndexes[iPop]] = boundaryDynamics.computeEquilibrium(unknownIndexes[iPop], enthalpy, u.data(),uSqr)
-                                 -(cell[util::opposite<L>(unknownIndexes[iPop])]
+                                 +(cell[util::opposite<L>(unknownIndexes[iPop])]
                                    - boundaryDynamics.computeEquilibrium(util::opposite<L>(unknownIndexes[iPop]), enthalpy, u.data(),uSqr) ) ;
 
   }
@@ -535,7 +533,7 @@ void AdvectionDiffusionEnthalpyEdgesDynamics<T,DESCRIPTOR,Dynamics,plane,normal1
     //                             -(cell[util::opposite<L>(unknownIndexes[iPop])]
     //                               - lbH::equilibriumFirstOrder(util::opposite<L>(unknownIndexes[iPop]), temperature, u.data()) ) ;
     cell[unknownIndexes[iPop]] = boundaryDynamics.computeEquilibrium(unknownIndexes[iPop], enthalpy, u.data(),uSqr)
-                                 -(cell[util::opposite<L>(unknownIndexes[iPop])]
+                                 +(cell[util::opposite<L>(unknownIndexes[iPop])]
                                    - boundaryDynamics.computeEquilibrium(util::opposite<L>(unknownIndexes[iPop]), enthalpy, u.data(),uSqr) ) ;
   }
 

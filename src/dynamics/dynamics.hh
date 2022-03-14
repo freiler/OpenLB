@@ -86,6 +86,10 @@ void Dynamics<T,DESCRIPTOR>::defineRho(int iPop, T rho)
 { }
 
 template<typename T, typename DESCRIPTOR>
+void Dynamics<T,DESCRIPTOR>::defineConcentration(int iPop, T rho)
+{ }
+
+template<typename T, typename DESCRIPTOR>
 void Dynamics<T,DESCRIPTOR>::defineU(const T u[DESCRIPTOR::d])
 { }
 
@@ -95,6 +99,12 @@ void Dynamics<T,DESCRIPTOR>::defineU(int iPop, const T u[DESCRIPTOR::d])
 
 template<typename T, typename DESCRIPTOR>
 T Dynamics<T,DESCRIPTOR>::getVelocityCoefficient(int iPop)
+{
+  return 0;
+}
+
+template<typename T, typename DESCRIPTOR>
+T Dynamics<T,DESCRIPTOR>::getConcentrationCoefficient()
 {
   return 0;
 }
@@ -117,7 +127,7 @@ template<typename T, typename DESCRIPTOR>
 BasicDynamics<T,DESCRIPTOR>::BasicDynamics(Momenta<T,DESCRIPTOR>& momenta)
   : _momenta(momenta)
 {
-  this->getName() = "BasicDynamics";  
+  this->getName() = "BasicDynamics";
 }
 
 template<typename T, typename DESCRIPTOR>
@@ -212,7 +222,7 @@ BGKdynamics<T,DESCRIPTOR>::BGKdynamics (
   : BasicDynamics<T,DESCRIPTOR>(momenta),
     _omega(omega)
 {
-  this->getName() = "BGKdynamics";  
+  this->getName() = "BGKdynamics";
 }
 
 template<typename T, typename DESCRIPTOR>
@@ -250,7 +260,7 @@ TRTdynamics<T,DESCRIPTOR>::TRTdynamics (
   : BasicDynamics<T,DESCRIPTOR>(momenta),
     _omega(omega), _omega2(1/(magicParameter/(1/omega-0.5)+0.5)), _magicParameter(magicParameter)
 {
-  this->getName() = "TRTdynamics";  
+  this->getName() = "TRTdynamics";
 }
 
 template<typename T, typename DESCRIPTOR>
@@ -303,7 +313,7 @@ ConstRhoBGKdynamics<T,DESCRIPTOR>::ConstRhoBGKdynamics (
   : BasicDynamics<T,DESCRIPTOR>(momenta),
     _omega(omega)
 {
-  this->getName() = "ConstRhoBGKdynamics";  
+  this->getName() = "ConstRhoBGKdynamics";
 }
 
 template<typename T, typename DESCRIPTOR>
@@ -344,7 +354,7 @@ IncBGKdynamics<T,DESCRIPTOR>::IncBGKdynamics (
   T omega, Momenta<T,DESCRIPTOR>& momenta )
   : BasicDynamics<T,DESCRIPTOR>(momenta), _omega(omega)
 {
-  this->getName() = "IncBGKdynamics";  
+  this->getName() = "IncBGKdynamics";
 }
 
 template<typename T, typename DESCRIPTOR>
@@ -385,7 +395,7 @@ RLBdynamics<T,DESCRIPTOR>::RLBdynamics (
   : BasicDynamics<T,DESCRIPTOR>(momenta),
     _omega(omega)
 {
-  this->getName() = "RLBdynamics";  
+  this->getName() = "RLBdynamics";
 }
 
 template<typename T, typename DESCRIPTOR>
@@ -419,7 +429,7 @@ CombinedRLBdynamics<T,DESCRIPTOR,Dynamics>::CombinedRLBdynamics (
   : BasicDynamics<T,DESCRIPTOR>(momenta),
     _boundaryDynamics(omega, momenta)
 {
-  this->getName() = "CombinedRLBdynamics";  
+  this->getName() = "CombinedRLBdynamics";
 }
 
 template<typename T, typename DESCRIPTOR, typename Dynamics>
@@ -472,7 +482,7 @@ ForcedBGKdynamics<T,DESCRIPTOR>::ForcedBGKdynamics (
   T omega, Momenta<T,DESCRIPTOR>& momenta )
   : BasicDynamics<T,DESCRIPTOR>(momenta), _omega(omega)
 {
-  this->getName() = "ForcedBGKdynamics";  
+  this->getName() = "ForcedBGKdynamics";
   OLB_PRECONDITION( DESCRIPTOR::template provides<descriptors::FORCE>() );
 }
 
@@ -536,7 +546,7 @@ ForcedKupershtokhBGKdynamics<T,DESCRIPTOR>::ForcedKupershtokhBGKdynamics (
   T omega, Momenta<T,DESCRIPTOR>& momenta )
   : BasicDynamics<T,DESCRIPTOR>(momenta), _omega(omega)
 {
-  this->getName() = "ForcedKupershtokhBGKdynamics";  
+  this->getName() = "ForcedKupershtokhBGKdynamics";
   OLB_PRECONDITION( DESCRIPTOR::template provides<descriptors::FORCE>() );
 }
 
@@ -690,7 +700,7 @@ PoissonDynamics<T,DESCRIPTOR>::PoissonDynamics (
   T omega, Momenta<T,DESCRIPTOR>& momenta, T sink)
   : BasicDynamics<T,DESCRIPTOR>(momenta), _omega(omega), _sink(sink)
 {
-  this->getName() = "PoissonDynamics";  
+  this->getName() = "PoissonDynamics";
 }
 
 template<typename T, typename DESCRIPTOR>
@@ -780,7 +790,7 @@ P1Dynamics<T,DESCRIPTOR>::P1Dynamics (
   T omega, Momenta<T,DESCRIPTOR>& momenta, T absorption, T scattering)
   : BasicDynamics<T,DESCRIPTOR>(momenta), _omega(omega), _absorption(absorption), _scattering(scattering)
 {
-  this->getName() = "P1Dynamics";  
+  this->getName() = "P1Dynamics";
 }
 
 template<typename T, typename DESCRIPTOR>
@@ -1009,7 +1019,7 @@ ForcedTRTdynamics<T,DESCRIPTOR>::ForcedTRTdynamics (
   : BasicDynamics<T,DESCRIPTOR>(momenta),
     _omega(omega), _omega2(1/(magicParameter/(1/omega-0.5)+0.5)), _magicParameter(magicParameter)
 {
-  this->getName() = "ForcedTRTdynamics";  
+  this->getName() = "ForcedTRTdynamics";
   OLB_PRECONDITION( DESCRIPTOR::template provides<descriptors::FORCE>() );
 }
 
@@ -1085,7 +1095,7 @@ D3Q13dynamics<T,DESCRIPTOR>::D3Q13dynamics (
   T omega, Momenta<T,DESCRIPTOR>& momenta )
   : BasicDynamics<T,DESCRIPTOR>(momenta)
 {
-  this->getName() = "D3Q13dynamics";  
+  this->getName() = "D3Q13dynamics";
   setOmega(omega);
 }
 
@@ -1373,7 +1383,7 @@ void ExternalVelocityMomenta<T,DESCRIPTOR>::defineAllMomenta (
 template<typename T, typename DESCRIPTOR>
 BounceBack<T,DESCRIPTOR>::BounceBack()
 {
-  this->getName() = "BounceBack";  
+  this->getName() = "BounceBack";
   _rhoFixed=false;
 }
 
@@ -1381,7 +1391,7 @@ template<typename T, typename DESCRIPTOR>
 BounceBack<T,DESCRIPTOR>::BounceBack(T rho)
   :_rho(rho)
 {
-  this->getName() = "BounceBack";    
+  this->getName() = "BounceBack";
   _rhoFixed=true;
 }
 
@@ -1495,7 +1505,7 @@ void BounceBack<T,DESCRIPTOR>::setOmega(T omega)
 template<typename T, typename DESCRIPTOR>
 BounceBackVelocity<T,DESCRIPTOR>::BounceBackVelocity(const T u[DESCRIPTOR::d])
 {
-  this->getName() = "BounceBackVelocity";  
+  this->getName() = "BounceBackVelocity";
   _rhoFixed=false;
   for (int iD=0; iD<DESCRIPTOR::d; ++iD) {
     _u[iD] = u[iD];
@@ -1506,7 +1516,7 @@ template<typename T, typename DESCRIPTOR>
 BounceBackVelocity<T,DESCRIPTOR>::BounceBackVelocity(const T rho, const T u[DESCRIPTOR::d])
   :_rho(rho)
 {
-  this->getName() = "BounceBackVelocity";  
+  this->getName() = "BounceBackVelocity";
   _rhoFixed=true;
   for (int iD=0; iD<DESCRIPTOR::d; ++iD) {
     _u[iD] = u[iD];
@@ -1632,7 +1642,7 @@ void BounceBackVelocity<T,DESCRIPTOR>::setOmega(T omega)
 template<typename T, typename DESCRIPTOR>
 BounceBackAnti<T,DESCRIPTOR>::BounceBackAnti()
 {
-  this->getName() = "BounceBackAnti";  
+  this->getName() = "BounceBackAnti";
   _rhoFixed = false;
   _rho = T(1);
 }
@@ -1641,7 +1651,7 @@ template<typename T, typename DESCRIPTOR>
 BounceBackAnti<T,DESCRIPTOR>::BounceBackAnti(const T rho)
   :_rho(rho)
 {
-  this->getName() = "BounceBackAnti";   
+  this->getName() = "BounceBackAnti";
   _rhoFixed = true;
 }
 
@@ -1772,7 +1782,7 @@ void BounceBackAnti<T,DESCRIPTOR>::setOmega(T omega)
 template<typename T, typename DESCRIPTOR>
 PartialBounceBack<T,DESCRIPTOR>::PartialBounceBack(T rf) : _rf(rf)
 {
-  this->getName() = "PartialBounceBack";  
+  this->getName() = "PartialBounceBack";
 }
 
 template<typename T, typename DESCRIPTOR>
@@ -1799,7 +1809,7 @@ template<typename T, typename DESCRIPTOR>
 EquilibirumBoundaryFirstOrder<T,DESCRIPTOR>::EquilibirumBoundaryFirstOrder(const T rho, const T u[DESCRIPTOR::d])
   :_rho(rho)
 {
-  this->getName() = "EquilibirumBoundaryFirstOrder";  
+  this->getName() = "EquilibirumBoundaryFirstOrder";
   for (int iD=0; iD<DESCRIPTOR::d; ++iD) {
     _u[iD] = u[iD];
   }
@@ -1924,7 +1934,7 @@ template<typename T, typename DESCRIPTOR>
 EquilibirumBoundarySecondOrder<T,DESCRIPTOR>::EquilibirumBoundarySecondOrder(const T rho, const T u[DESCRIPTOR::d])
   :_rho(rho)
 {
-  this->getName() = "EquilibirumBoundarySecondOrder";  
+  this->getName() = "EquilibirumBoundarySecondOrder";
   for (int iD=0; iD<DESCRIPTOR::d; ++iD) {
     _u[iD] = u[iD];
   }
@@ -2049,7 +2059,7 @@ void EquilibirumBoundarySecondOrder<T,DESCRIPTOR>::setOmega(T omega)
 template<typename T, typename DESCRIPTOR>
 NoDynamics<T,DESCRIPTOR>::NoDynamics(T rho) :_rho(rho)
 {
-  this->getName() = "NoDynamics";  
+  this->getName() = "NoDynamics";
 }
 
 template<typename T, typename DESCRIPTOR>
@@ -2125,6 +2135,10 @@ void NoDynamics<T,DESCRIPTOR>::defineRho(Cell<T,DESCRIPTOR>& cell, T rho)
 { }
 
 template<typename T, typename DESCRIPTOR>
+void NoDynamics<T,DESCRIPTOR>::defineConcentration(Cell<T,DESCRIPTOR>& cell, const T rho)
+{ }
+
+template<typename T, typename DESCRIPTOR>
 void NoDynamics<T,DESCRIPTOR>::defineU (
   Cell<T,DESCRIPTOR>& cell,
   const T u[DESCRIPTOR::d])
@@ -2158,7 +2172,7 @@ void NoDynamics<T,DESCRIPTOR>::setOmega(T omega)
 template<typename T, typename DESCRIPTOR>
 OffDynamics<T,DESCRIPTOR>::OffDynamics(const T _location[DESCRIPTOR::d])
 {
-  this->getName() = "OffDynamics";  
+  this->getName() = "OffDynamics";
   typedef DESCRIPTOR L;
   for (int iD = 0; iD < L::d; iD++) {
     location[iD] = _location[iD];
@@ -2166,6 +2180,7 @@ OffDynamics<T,DESCRIPTOR>::OffDynamics(const T _location[DESCRIPTOR::d])
   for (int iPop = 0; iPop < L::q; iPop++) {
     distances[iPop] = -1;
     velocityCoefficient[iPop] = 0;
+    concentrationCoefficient = 0;
     for (int iD = 0; iD < L::d; iD++) {
       boundaryIntersection[iPop][iD] = _location[iD];
       _u[iPop][iD] = T();
@@ -2177,7 +2192,7 @@ OffDynamics<T,DESCRIPTOR>::OffDynamics(const T _location[DESCRIPTOR::d])
 template<typename T, typename DESCRIPTOR>
 OffDynamics<T,DESCRIPTOR>::OffDynamics(const T _location[DESCRIPTOR::d], T _distances[DESCRIPTOR::q])
 {
-  this->getName() = "OffDynamics";  
+  this->getName() = "OffDynamics";
   typedef DESCRIPTOR L;
   for (int iD = 0; iD < L::d; iD++) {
     location[iD] = _location[iD];
@@ -2185,6 +2200,7 @@ OffDynamics<T,DESCRIPTOR>::OffDynamics(const T _location[DESCRIPTOR::d], T _dist
   for (int iPop = 0; iPop < L::q; iPop++) {
     distances[iPop] = _distances[iPop];
     velocityCoefficient[iPop] = 0;
+    concentrationCoefficient = 0;
     for (int iD = 0; iD < L::d; iD++) {
       boundaryIntersection[iPop][iD] = _location[iD] - _distances[iPop]*descriptors::c<L>(iPop,iD);
       _u[iPop][iD] = T();
@@ -2273,7 +2289,21 @@ void OffDynamics<T,DESCRIPTOR>::defineRho(int iPop, T rho)
 {
   _rho=rho;
 }
+//////////////////////////////////////////////////
+template<typename T, typename DESCRIPTOR>
+void OffDynamics<T,DESCRIPTOR>::defineConcentration(Cell<T,DESCRIPTOR>& cell, const T rho)
+{
+  _rho=rho;
+}
 
+template<typename T, typename DESCRIPTOR>
+void OffDynamics<T,DESCRIPTOR>::defineConcentration(int iPop, const T rho)
+{
+  typedef DESCRIPTOR L;
+  concentrationCoefficient = (1./descriptors::invCs2<T,L>()) * (rho-1.);
+  _rho=rho;
+}
+///////////////////////////////////////////////////
 template<typename T, typename DESCRIPTOR>
 void OffDynamics<T,DESCRIPTOR>::defineU (
   Cell<T,DESCRIPTOR>& cell,
@@ -2323,12 +2353,18 @@ T OffDynamics<T,DESCRIPTOR>::getVelocityCoefficient(int iPop)
   return velocityCoefficient[iPop];
 }
 
+template<typename T, typename DESCRIPTOR>
+T OffDynamics<T,DESCRIPTOR>::getConcentrationCoefficient()
+{
+  return concentrationCoefficient;
+}
+
 ////////////////////// Class ZeroDistributionDynamics ///////////////////////////
 
 template<typename T, typename DESCRIPTOR>
 ZeroDistributionDynamics<T,DESCRIPTOR>::ZeroDistributionDynamics()
 {
-  this->getName() = "ZeroDistributionDynamics";  
+  this->getName() = "ZeroDistributionDynamics";
 }
 
 template<typename T, typename DESCRIPTOR>

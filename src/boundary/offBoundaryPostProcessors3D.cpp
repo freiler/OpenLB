@@ -38,4 +38,9 @@ template class VelocityBouzidiLinearPostProcessor3D<double, descriptors::D3Q19<>
 template class VelocityBouzidiLinearPostProcessorGenerator3D<double, descriptors::D3Q19<>>;
 template class VelocityBounceBackPostProcessor3D<double, descriptors::D3Q19<>>;
 template class VelocityBounceBackPostProcessorGenerator3D<double, descriptors::D3Q19<>>;
+
+template class EnthalpyBouzidiLinearPostProcessor3D<double, descriptors::D3Q7<>>;
+template class EnthalpyBouzidiLinearPostProcessorGenerator3D<double, descriptors::D3Q7<>>;
+template class EnthalpyBounceBackPostProcessor3D<double, descriptors::D3Q7<>>;
+template class EnthalpyBounceBackPostProcessorGenerator3D<double, descriptors::D3Q7<>>;
 }  // namespace olb

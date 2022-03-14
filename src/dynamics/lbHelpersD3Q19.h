@@ -65,7 +65,8 @@ struct lbDynamicsHelpers<T, descriptors::D3Q19<FIELDS...> > {
   }
 
  /// RLB advection diffusion collision step
-  static T rlbCollision(Cell<T, descriptors::D3Q19<> >& cell, T rho, const T u[3], T omega )
+  //static T rlbCollision(Cell<T, descriptors::D3Q19<> >& cell, T rho, const T u[3], T omega )
+  static T rlbCollision(Cell<T,DESCRIPTOR>& cell, T rho, const T u[3], T omega )
   {
     const T uSqr = util::normSqr<T, DESCRIPTOR::d>( u );
     // First-order moment for the regularization

@@ -74,6 +74,9 @@ template class NoDynamics<double, descriptors::D3Q19<>>;
 template class OffDynamics<double, descriptors::D3Q19<>>;
 template class ZeroDistributionDynamics<double, descriptors::D3Q19<>>;
 
+template class NoDynamics<double, descriptors::D3Q7<>>;
+template class OffDynamics<double, descriptors::D3Q7<>>;
+
 
 namespace instances {
 
@@ -100,6 +103,9 @@ template BounceBackAnti<double, descriptors::D3Q19<>>& getBounceBackAnti(const d
 template NoDynamics<double, descriptors::D3Q19<>>& getNoDynamics(double rho);
 
 template ZeroDistributionDynamics<double, descriptors::D3Q19<>>& getZeroDistributionDynamics();
+
+
+template NoDynamics<double, descriptors::D3Q7<>>& getNoDynamics(double rho);
 }
 
 }

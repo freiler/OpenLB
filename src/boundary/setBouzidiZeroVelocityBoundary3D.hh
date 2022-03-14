@@ -136,17 +136,17 @@ void setBouzidiZeroVelocityBoundary1(BlockLatticeStructure3D<T, DESCRIPTOR>& blo
         T physR[3];
         blockGeometryStructure.getPhysR(physR,iXn,iYn,iZn);
         T voxelSize=blockGeometryStructure.getDeltaR();
-        
+
         Vector<T,3> physC(physR);
-        
+
         Vector<T,3> direction(-voxelSize*c[0],-voxelSize*c[1],-voxelSize*c[2]);
         T cPhysNorm = voxelSize*sqrt(c[0]*c[0]+c[1]*c[1]+c[2]*c[2]);
-        
+
         if (!geometryIndicator.distance(dist,physC,direction,blockGeometryStructure.getIcGlob() ) ) {
           T epsX = voxelSize*c[0]*_epsFraction;
           T epsY = voxelSize*c[1]*_epsFraction;
           T epsZ = voxelSize*c[2]*_epsFraction;
-        
+
           Vector<T,3> physC2(physC);
           physC2[0] += epsX;
           physC2[1] += epsY;
@@ -155,7 +155,7 @@ void setBouzidiZeroVelocityBoundary1(BlockLatticeStructure3D<T, DESCRIPTOR>& blo
           direction2[0] -= 2.*epsX;
           direction2[1] -= 2.*epsY;
           direction2[2] -= 2.*epsZ;
-        
+
           if ( !geometryIndicator.distance(dist,physC2,direction2,blockGeometryStructure.getIcGlob())) {
             clout << "ERROR: no boundary found at (" << iXn << "," << iYn << "," << iZn <<") ~ ("
                   << physR[0] << "," << physR[1] << "," << physR[2] <<"), "
@@ -205,9 +205,12 @@ void setBouzidiZeroVelocityBoundary(BlockLatticeStructure3D<T, DESCRIPTOR>& bloc
 {
   PostProcessorGenerator3D<T, DESCRIPTOR>* postProcessor = nullptr;
   const Vector<int,3> c = descriptors::c<DESCRIPTOR>(iPop);
-
   if (blockGeometryStructure.getMaterial(x-c[0], y-c[1], z-c[2]) != 1) {
+    //if (iPop == 14){
     postProcessor = new ZeroVelocityBounceBackPostProcessorGenerator3D<T,DESCRIPTOR>(x, y, z, iPop, dist);
+    //std::cout << "iPop: " << iPop << " c : (" << c[0] << "," << c[1] << "," << c[2] << ") at x,y,z: (" << x << "," << y << "," << z << ")" << std::endl;
+    //std::cout << "(x-c[0], y-c[1], z-c[2]): (" << x-c[0]<< "," << y-c[1] <<","<< z-c[2] << ")"<<std::endl;
+    //std::cout << "Material: " << blockGeometryStructure.getMaterial(x-c[0], y-c[1], z-c[2]) << std::endl;
   }
   else {
     postProcessor = new ZeroVelocityBouzidiLinearPostProcessorGenerator3D<T,DESCRIPTOR>(x, y, z, iPop, dist);
@@ -221,4 +224,3 @@ void setBouzidiZeroVelocityBoundary(BlockLatticeStructure3D<T, DESCRIPTOR>& bloc
 }
 
 #endif
-
